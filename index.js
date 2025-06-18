@@ -1,10 +1,13 @@
 import express from "express";
 import cors from "cors";
 import { createClient } from "@supabase/supabase-js";
+import dotenv from "dotenv";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+dotenv.config();
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
@@ -63,7 +66,7 @@ app.get("/api/fingerprints", async (req, res) => {
   const { data, error } = await supabase
     .from("fingerprints")
     .select("*")
-    // .order("last_visited", { ascending: false });
+    .order("last_visited", { ascending: false });
 
   if (error) {
     console.error("Fetch error:", error);

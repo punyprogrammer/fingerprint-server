@@ -6,10 +6,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Supabase config
-const supabaseUrl = "https://indrsxapyxsyxoqcefta.supabase.co"; // replace
-const supabaseKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImluZHJzeGFweXhzeXhvcWNlZnRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAyMzc3NzUsImV4cCI6MjA2NTgxMzc3NX0.ht6N7FJdEf3dYROB_ulFejSp2THlTU8_6cujPIp5-_0"; // replace
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 app.post("/api/fingerprint", async (req, res) => {
@@ -74,8 +72,8 @@ app.get("/api/fingerprints", async (req, res) => {
 
   res.status(200).json(data);
 });
-// Start server
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });

@@ -63,7 +63,7 @@ app.get("/api/fingerprints", async (req, res) => {
   const { data, error } = await supabase
     .from("fingerprints")
     .select("*")
-    .order("last_visited", { ascending: false });
+    // .order("last_visited", { ascending: false });
 
   if (error) {
     console.error("Fetch error:", error);

@@ -10,48 +10,47 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Middleware for logging request/response
-app.use((req, res, next) => {
-  console.log(`→ [${req.method}] ${req.originalUrl}`);
-  console.log("→ Headers:", JSON.stringify(req.headers));
-
-  if (req.body && Object.keys(req.body).length > 0) {
-    console.log("→ Body:", JSON.stringify(req.body));
-  }
-
-  const originalSend = res.send;
-  res.send = function (body) {
-    console.log(
-      `← [${req.method}] ${req.originalUrl} - Status: ${res.statusCode}`
-    );
-    console.log("← Response Body:", body);
-    return originalSend.call(this, body);
-  };
-
-  next();
-});
-
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 function stableStringify(obj) {
-  return JSON.stringify(obj, Object.keys(obj).sort());
+  if (Array.isArray(obj)) {
+    return `[${obj.map(stableStringify).join(",")}]`;
+  } else if (obj && typeof obj === "object") {
+    const keys = Object.keys(obj).sort();
+    return `{${keys
+      .map((k) => `"${k}":${stableStringify(obj[k])}`)
+      .join(",")}}`;
+  } else {
+    return JSON.stringify(obj);
+  }
 }
 
 // Fingerprint API
 app.post("/api/fingerprint", async (req, res) => {
   const clientData = req.body;
+  const { city, country, ...fingerprintData } = clientData;
 
-  const userAgent = req.headers["user-agent"];
+  function extractBrowserName(userAgent) {
+    if (!userAgent) return "Unknown";
+    if (userAgent.includes("Firefox")) return "Firefox";
+    if (userAgent.includes("Edg")) return "Edge";
+    if (userAgent.includes("Chrome") && !userAgent.includes("Chromium"))
+      return "Chrome";
+    if (userAgent.includes("Safari") && !userAgent.includes("Chrome"))
+      return "Safari";
+    return "Unknown";
+  }
+
+  const userAgentRaw = req.headers["user-agent"];
+  const userAgent = extractBrowserName(userAgentRaw);
+
   const forwardedProto = req.headers["x-forwarded-proto"] || "http";
-  const forwardedPort =
-    req.headers["x-forwarded-port"] || req.socket.remotePort;
 
   const serverMeta = {
     userAgent, // Browser/OS/device
     protocol: forwardedProto, // http or https
-    port: forwardedPort, // client port (proxy-aware)
     language: req.headers["accept-language"], // preferred languages
     accept: req.headers["accept"], // accepted MIME types
     dnt: req.headers["dnt"], // Do Not Track signal
@@ -64,10 +63,10 @@ app.post("/api/fingerprint", async (req, res) => {
   };
 
   const fingerprintPayload = {
-    ...clientData,
+    ...fingerprintData,
     serverMeta,
   };
-
+  console.log("fingerprintPayload", fingerprintPayload);
   const combinedHash = crypto
     .createHash("sha256")
     .update(JSON.stringify(stableStringify(fingerprintPayload)))
